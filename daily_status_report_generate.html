@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GRIP Report Generator</title>
+  <style>
+    body { font-family: Arial; margin: 20px; background: #f8f9fa; }
+    h1, h2, h3 { color: #2F4F4F; }
+    .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+    .form-row input, .form-row select { padding: 5px; font-size: 14px; flex: 1; min-width: 120px; }
+    textarea { width: 100%; height: 80px; font-size: 14px; }
+    button { padding: 8px 16px; background: #2F4F4F; color: white; border: none; margin-top: 10px; cursor: pointer; }
+    button:hover { background: #1e2d2d; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+    th, td { border: 1px solid #ccc; padding: 8px; word-wrap: break-word; text-align: left; }
+    th:nth-child(1), td:nth-child(1) { width: 10%; }
+    th:nth-child(2), td:nth-child(2) { width: 30%; }
+    th:nth-child(3), td:nth-child(3) { width: 15%; }
+    th:nth-child(4), td:nth-child(4) { width: 15%; }
+    th:nth-child(5), td:nth-child(5) { width: 30%; }
+    th { background-color: #f2f2f2; }
+    .ready-for-rc { background-color: #d4edda; }
+    .in-qa { background-color: #d1ecf1; }
+    .needs-refinement { background-color: #e2e3f3; }
+    .reopened { background-color: #f9dcdc; }
+    .logged-defect { background-color: #fbe8b7; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <h1>GRIP Report Generator</h1>
+
+  <label><strong>Date:</strong></label>
+  <input type="date" id="reportDate" />
+
+  <h2>Ticket Data</h2>
+  <div id="ticketContainer"></div>
+  <button onclick="addTicket()">➕ Add Ticket</button>
+
+  <h2>📥 Or Upload Excel File</h2>
+  <input type="file" id="excelUpload" accept=".xlsx, .xls" onchange="handleExcel(event)" />
+
+  <h2>Automation Status</h2>
+  <textarea id="automationStatus">Test cases have been updated...</textarea>
+
+  <br><button onclick="generateReport()">Generate Report</button>
+
+  <div id="result" style="margin-top: 30px;"></div>
+
+  <button onclick="downloadReport()" style="display:none;" id="downloadBtn">📥 Download HTML</button>
+
+  <script>
+    let ticketIndex = 0;
+    const statuses = ["Ready for RC", "In QA", "Needs Refinement", "Reopened", "To do(Backlog)"];
+
+    function addTicket() {
+      const container = document.getElementById("ticketContainer");
+      const div = document.createElement("div");
+      div.className = "form-row";
+      div.innerHTML = `
+        <input placeholder="Ticket ID" id="ticketId${ticketIndex}">
+        <input placeholder="Title" id="title${ticketIndex}">
+        <select id="status${ticketIndex}">
+          ${statuses.map(s => `<option>${s}</option>`).join("")}
+        </select>
+        <input placeholder="Label" id="label${ticketIndex}">
+        <input placeholder="Comment" id="comment${ticketIndex}">
+      `;
+      container.appendChild(div);
+      ticketIndex++;
+    }
+
+    function handleExcel(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+        // Clear existing tickets
+        document.getElementById("ticketContainer").innerHTML = "";
+        ticketIndex = 0;
+
+        json.forEach(row => {
+          const container = document.getElementById("ticketContainer");
+          const div = document.createElement("div");
+          div.className = "form-row";
+          div.innerHTML = `
+            <input value="${row['Ticket ID'] || ''}" placeholder="Ticket ID" id="ticketId${ticketIndex}">
+            <input value="${row['Title'] || ''}" placeholder="Title" id="title${ticketIndex}">
+            <select id="status${ticketIndex}">
+              ${statuses.map(s => `<option${s === row['Status'] ? ' selected' : ''}>${s}</option>`).join("")}
+            </select>
+            <input value="${row['Label'] || ''}" placeholder="Label" id="label${ticketIndex}">
+            <input value="${row['Comment'] || ''}" placeholder="Comment" id="comment${ticketIndex}">
+          `;
+          container.appendChild(div);
+          ticketIndex++;
+        });
+
+        alert("Excel data loaded into form successfully!");
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function groupByStatus(tickets, status) {
+      return tickets.filter(t => t.status === status);
+    }
+
+    function generateTable(tickets, cssClass = "") {
+      if (!tickets.length) return "";
+      let rows = tickets.map(t => `
+        <tr class="${cssClass}">
+          <td>${t.id}</td><td>${t.title}</td><td>${t.status}</td><td>${t.label}</td><td>${t.comment}</td>
+        </tr>
+      `).join("");
+      return `<table>
+        <tr><th>Ticket ID</th><th>Title</th><th>Status</th><th>Label</th><th>Comment (If any)</th></tr>
+        ${rows}
+      </table>`;
+    }
+
+    function generateReport() {
+      const rawDate = document.getElementById("reportDate").value;
+      if (!rawDate) {
+        alert("Please select a date.");
+        return;
+      }
+      const dateParts = rawDate.split("-");
+      const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+      const automation = document.getElementById("automationStatus").value;
+
+      let tickets = [];
+      for (let i = 0; i < ticketIndex; i++) {
+        const id = document.getElementById(`ticketId${i}`)?.value;
+        const title = document.getElementById(`title${i}`)?.value;
+        const status = document.getElementById(`status${i}`)?.value;
+        const label = document.getElementById(`label${i}`)?.value;
+        const comment = document.getElementById(`comment${i}`)?.value;
+        if (id && title) {
+          tickets.push({ id, title, status, label, comment });
+        }
+      }
+
+      let html = `<h1>GRIP Project Daily Status (${formattedDate})</h1>`;
+      html += `<h2>🧪 Manual Testing / Functional Testing</h2>`;
+
+      const sections = [
+        { label: "✅ Ready for RC", status: "Ready for RC", class: "ready-for-rc" },
+        { label: "🛠 Needs Refinement", status: "Needs Refinement", class: "needs-refinement" },
+        { label: "🧪 In QA", status: "In QA", class: "in-qa" },
+        { label: "🔁 Reopened", status: "Reopened", class: "reopened" },
+        { label: "🐞 Logged Defects", status: "To do(Backlog)", class: "logged-defect" }
+      ];
+
+      for (const section of sections) {
+        const filtered = groupByStatus(tickets, section.status);
+        if (filtered.length) {
+          html += `<h3>${section.label}</h3>`;
+          html += generateTable(filtered, section.class);
+        }
+      }
+
+      html += `<h2>🤖 Automation Testing</h2>`;
+      html += `<h3>Automation Status</h3><p>${automation}</p>`;
+
+      document.getElementById("result").innerHTML = html;
+      document.getElementById("downloadBtn").style.display = "inline-block";
+    }
+
+    function downloadReport() {
+  const rawDate = document.getElementById("reportDate").value;
+  const dateParts = rawDate.split("-");
+  const formattedDate = `${dateParts[2]}_${dateParts[1]}_${dateParts[0]}`;
+  const filename = `GRIP_Project_Daily_Status_${formattedDate}.html`;
+
+  const styles = `
+    <style>
+      body { font-family: Arial; margin: 20px; background: #f8f9fa; }
+      h1, h2, h3 { color: #2F4F4F; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+      th, td { border: 1px solid #ccc; padding: 8px; word-wrap: break-word; text-align: left; }
+      th:nth-child(1), td:nth-child(1) { width: 10%; }
+      th:nth-child(2), td:nth-child(2) { width: 30%; }
+      th:nth-child(3), td:nth-child(3) { width: 15%; }
+      th:nth-child(4), td:nth-child(4) { width: 15%; }
+      th:nth-child(5), td:nth-child(5) { width: 30%; }
+      th { background-color: #f2f2f2; }
+      .ready-for-rc { background-color: #d4edda; }
+      .in-qa { background-color: #d1ecf1; }
+      .needs-refinement { background-color: #e2e3f3; }
+      .reopened { background-color: #f9dcdc; }
+      .logged-defect { background-color: #fbe8b7; }
+    </style>
+  `;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>GRIP Project Daily Status</title>
+  ${styles}
+</head>
+<body>
+  ${document.getElementById("result").innerHTML}
+</body>
+</html>`;
+
+  const blob = new Blob([htmlContent], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+}
+
+    addTicket(); // Load initial row
+  </script>
+</body>
+</html>
