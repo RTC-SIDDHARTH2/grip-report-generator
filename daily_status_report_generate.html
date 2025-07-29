@@ -44,6 +44,11 @@
     📄 Download Sample Template
   </a>
 </p>
+<h2>📋 Or Paste Table Data</h2>
+<textarea id="pastedData" placeholder="Paste data here in tab-separated format (like Excel copy)..."></textarea>
+<br>
+<button onclick="parsePastedData()">📤 Paste & Load Data</button>
+
 
 
   <h2>Automation Status</h2>
@@ -224,6 +229,61 @@
   a.download = filename;
   a.click();
 }
+  function parsePastedData() {
+  const raw = document.getElementById("pastedData").value.trim();
+  if (!raw) {
+    alert("Please paste some data first.");
+    return;
+  }
+
+  const lines = raw.split("\n").map(line => line.split("\t"));
+  if (lines.length < 2) {
+    alert("Not enough data to parse.");
+    return;
+  }
+
+  const headers = lines[0].map(h => h.trim());
+  const expectedHeaders = ["Ticket ID", "Title", "Status", "Label", "Comment (If any)"];
+  const headerMap = {};
+
+  // Map user headers to expected keys
+  expectedHeaders.forEach(key => {
+    const index = headers.findIndex(h => h.toLowerCase().includes(key.toLowerCase()));
+    headerMap[key] = index;
+  });
+
+  // Reset current entries
+  document.getElementById("ticketContainer").innerHTML = "";
+  ticketIndex = 0;
+
+  for (let i = 1; i < lines.length; i++) {
+    const row = lines[i];
+    if (!row.length || !row[headerMap["Ticket ID"]] || !row[headerMap["Title"]]) continue;
+
+    const id = row[headerMap["Ticket ID"]] || "";
+    const title = row[headerMap["Title"]] || "";
+    const status = row[headerMap["Status"]] || "Ready for RC";
+    const label = row[headerMap["Label"]] || "";
+    const comment = row[headerMap["Comment (If any)"]] || "";
+
+    const div = document.createElement("div");
+    div.className = "form-row";
+    div.innerHTML = `
+      <input value="${id}" placeholder="Ticket ID" id="ticketId${ticketIndex}">
+      <input value="${title}" placeholder="Title" id="title${ticketIndex}">
+      <select id="status${ticketIndex}">
+        ${statuses.map(s => `<option${s === status ? ' selected' : ''}>${s}</option>`).join("")}
+      </select>
+      <input value="${label}" placeholder="Label" id="label${ticketIndex}">
+      <input value="${comment}" placeholder="Comment" id="comment${ticketIndex}">
+    `;
+    document.getElementById("ticketContainer").appendChild(div);
+    ticketIndex++;
+  }
+
+  alert("Pasted data loaded successfully!");
+}
+
 
     addTicket(); // Load initial row
   </script>
