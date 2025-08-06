@@ -24,7 +24,9 @@
     .needs-refinement { background-color: #e2e3f3; }
     .reopened { background-color: #f9dcdc; }
     .logged-defect { background-color: #fbe8b7; }
+    .added-zephyr { background-color: #e0f7da; }
   </style>
+  <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -40,20 +42,19 @@
   <h2>📥 Or Upload Excel File</h2>
   <input type="file" id="excelUpload" accept=".xlsx, .xls" onchange="handleExcel(event)" />
   <p>
-  <a href="GRIP_Report_Template.xlsx" download style="padding:8px 12px;background:#004080;color:#fff;text-decoration:none;border-radius:4px;">
-    📄 Download Sample Template
-  </a>
-</p>
-<h2>📋 Or Paste Table Data</h2>
-<textarea id="pastedData" placeholder="Paste data here in tab-separated format (like Excel copy)..."></textarea>
-<br>
-<button onclick="parsePastedData()">📤 Paste & Load Data</button>
+    <a href="GRIP_Report_Template.xlsx" download style="padding:8px 12px;background:#004080;color:#fff;text-decoration:none;border-radius:4px;">
+      📄 Download Sample Template
+    </a>
+  </p>
 
-
+  <h2>📋 Or Paste Table Data</h2>
+  <textarea id="pastedData" placeholder="Paste data here in tab-separated format (like Excel copy)..."></textarea>
+  <br>
+  <button onclick="parsePastedData()">📤 Paste & Load Data</button>
 
   <h2>Automation Status</h2>
   <textarea id="automationStatus">Test cases have been updated...</textarea>
-
+	
   <br><button onclick="generateReport()">Generate Report</button>
 
   <div id="result" style="margin-top: 30px;"></div>
@@ -62,7 +63,7 @@
 
   <script>
     let ticketIndex = 0;
-    const statuses = ["Ready for RC", "In QA", "Needs Refinement", "Reopened", "To do(Backlog)"];
+    const statuses = ["Ready for RC", "In QA", "Needs Refinement", "Reopened", "To do(Backlog)", "Added to Zephyr"];
 
     function addTicket() {
       const container = document.getElementById("ticketContainer");
@@ -87,17 +88,11 @@
       reader.onload = function(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
-
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-        // Clear existing tickets
         document.getElementById("ticketContainer").innerHTML = "";
         ticketIndex = 0;
-
         json.forEach(row => {
-          const container = document.getElementById("ticketContainer");
           const div = document.createElement("div");
           div.className = "form-row";
           div.innerHTML = `
@@ -109,10 +104,9 @@
             <input value="${row['Label'] || ''}" placeholder="Label" id="label${ticketIndex}">
             <input value="${row['Comment'] || ''}" placeholder="Comment" id="comment${ticketIndex}">
           `;
-          container.appendChild(div);
+          document.getElementById("ticketContainer").appendChild(div);
           ticketIndex++;
         });
-
         alert("Excel data loaded into form successfully!");
       };
       reader.readAsArrayBuffer(file);
@@ -141,9 +135,10 @@
         alert("Please select a date.");
         return;
       }
-      const dateParts = rawDate.split("-");
-      const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-      const automation = document.getElementById("automationStatus").value;
+      const [yyyy, mm, dd] = rawDate.split("-");
+      const formattedDate = `${dd}/${mm}/${yyyy}`;
+      const automation = automationEditor ? automationEditor.getData() : document.getElementById("automationStatus").value;
+
 
       let tickets = [];
       for (let i = 0; i < ticketIndex; i++) {
@@ -165,7 +160,8 @@
         { label: "🛠 Needs Refinement", status: "Needs Refinement", class: "needs-refinement" },
         { label: "🧪 In QA", status: "In QA", class: "in-qa" },
         { label: "🔁 Reopened", status: "Reopened", class: "reopened" },
-        { label: "🐞 Logged Defects", status: "To do(Backlog)", class: "logged-defect" }
+        { label: "🐞 Logged Defects", status: "To do(Backlog)", class: "logged-defect" },
+        { label: "🧾 Test Cases Added to Zephyr", status: "Added to Zephyr", class: "added-zephyr" }
       ];
 
       for (const section of sections) {
@@ -184,87 +180,90 @@
     }
 
     function downloadReport() {
-  const rawDate = document.getElementById("reportDate").value;
-  const dateParts = rawDate.split("-");
-  const formattedDate = `${dateParts[2]}_${dateParts[1]}_${dateParts[0]}`;
-  const filename = `GRIP_Project_Daily_Status_${formattedDate}.html`;
+      const rawDate = document.getElementById("reportDate").value;
+      const [yyyy, mm, dd] = rawDate.split("-");
+      const filename = `GRIP_Project_Daily_Status_${dd}_${mm}_${yyyy}.html`;
 
-  const styles = `
-    <style>
-      body { font-family: Arial; margin: 20px; background: #f8f9fa; }
-      h1, h2, h3 { color: #2F4F4F; }
-      table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
-      th, td { border: 1px solid #ccc; padding: 8px; word-wrap: break-word; text-align: left; }
-      th:nth-child(1), td:nth-child(1) { width: 10%; }
-      th:nth-child(2), td:nth-child(2) { width: 30%; }
-      th:nth-child(3), td:nth-child(3) { width: 15%; }
-      th:nth-child(4), td:nth-child(4) { width: 15%; }
-      th:nth-child(5), td:nth-child(5) { width: 30%; }
-      th { background-color: #f2f2f2; }
-      .ready-for-rc { background-color: #d4edda; }
-      .in-qa { background-color: #d1ecf1; }
-      .needs-refinement { background-color: #e2e3f3; }
-      .reopened { background-color: #f9dcdc; }
-      .logged-defect { background-color: #fbe8b7; }
-    </style>
-  `;
-
-  const htmlContent = `
+      const htmlContent = `
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>GRIP Project Daily Status</title>
-  ${styles}
-</head>
-<body>
-  ${document.getElementById("result").innerHTML}
-</body>
-</html>`;
+<html><head><meta charset="UTF-8"><title>GRIP Project Daily Status</title>
+<style>
+  body { font-family: Arial; margin: 20px; background: #f8f9fa; }
+  h1, h2, h3 { color: #2F4F4F; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+  th, td { border: 1px solid #ccc; padding: 8px; word-wrap: break-word; text-align: left; }
+  th:nth-child(1), td:nth-child(1) { width: 10%; }
+  th:nth-child(2), td:nth-child(2) { width: 30%; }
+  th:nth-child(3), td:nth-child(3) { width: 15%; }
+  th:nth-child(4), td:nth-child(4) { width: 15%; }
+  th:nth-child(5), td:nth-child(5) { width: 30%; }
+  th { background-color: #f2f2f2; }
+  .ready-for-rc { background-color: #d4edda; }
+  .in-qa { background-color: #d1ecf1; }
+  .needs-refinement { background-color: #e2e3f3; }
+  .reopened { background-color: #f9dcdc; }
+  .logged-defect { background-color: #fbe8b7; }
+  .added-zephyr { background-color: #fff3cd; }
+</style></head><body>
+${document.getElementById("result").innerHTML}
+</body></html>`;
 
-  const blob = new Blob([htmlContent], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-}
-  function parsePastedData() {
+      const blob = new Blob([htmlContent], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+    }
+
+    function parsePastedData() {
   const raw = document.getElementById("pastedData").value.trim();
   if (!raw) {
     alert("Please paste some data first.");
     return;
   }
 
-  const lines = raw.split("\n").map(line => line.split("\t"));
+  const lines = raw.split("\n").map(line => line.split("\t").map(cell => cell.trim()));
   if (lines.length < 2) {
     alert("Not enough data to parse.");
     return;
   }
 
-  const headers = lines[0].map(h => h.trim());
-  const expectedHeaders = ["Ticket ID", "Title", "Status", "Label", "Comment (If any)"];
-  const headerMap = {};
+  const headers = lines[0].map(h => h.toLowerCase());
+  const headerMap = {
+    id: headers.findIndex(h => h.includes("ticket id")),
+    title: headers.findIndex(h => h.includes("title")),
+    status: headers.findIndex(h => h.includes("status")),
+    label: headers.findIndex(h => h.includes("label")),
+    comment: headers.findIndex(h => h.includes("comment")) // optional
+  };
 
-  // Map user headers to expected keys
-  expectedHeaders.forEach(key => {
-    const index = headers.findIndex(h => h.toLowerCase().includes(key.toLowerCase()));
-    headerMap[key] = index;
-  });
+  if (headerMap.id === -1 || headerMap.title === -1 || headerMap.status === -1) {
+    alert("Required columns (Ticket ID, Title, Status) not found.");
+    return;
+  }
 
-  // Reset current entries
   document.getElementById("ticketContainer").innerHTML = "";
   ticketIndex = 0;
 
   for (let i = 1; i < lines.length; i++) {
     const row = lines[i];
-    if (!row.length || !row[headerMap["Ticket ID"]] || !row[headerMap["Title"]]) continue;
+    if (!row[headerMap.id] || !row[headerMap.title]) continue;
 
-    const id = row[headerMap["Ticket ID"]] || "";
-    const title = row[headerMap["Title"]] || "";
-    const status = row[headerMap["Status"]] || "Ready for RC";
-    const label = row[headerMap["Label"]] || "";
-    const comment = row[headerMap["Comment (If any)"]] || "";
+    let rawStatus = row[headerMap.status].toLowerCase().trim();
+    let normalizedStatus = "Ready for RC"; // default
+
+    if (rawStatus.includes("refine")) normalizedStatus = "Needs Refinement";
+    else if (rawStatus.includes("qa")) normalizedStatus = "In QA";
+    else if (rawStatus.includes("rc")) normalizedStatus = "Ready for RC";
+    else if (rawStatus.includes("defect")) normalizedStatus = "To do(Backlog)";
+    else if (rawStatus.includes("reopen")) normalizedStatus = "Reopened";
+    else if (rawStatus.includes("add") || rawStatus.includes("zephyr")) normalizedStatus = "Added to Zephyr";
+
+    const id = row[headerMap.id] || "";
+    const title = row[headerMap.title] || "";
+    const label = headerMap.label !== -1 ? (row[headerMap.label] || "") : "";
+    const comment = headerMap.comment !== -1 ? (row[headerMap.comment] || "") : "";
 
     const div = document.createElement("div");
     div.className = "form-row";
@@ -272,7 +271,7 @@
       <input value="${id}" placeholder="Ticket ID" id="ticketId${ticketIndex}">
       <input value="${title}" placeholder="Title" id="title${ticketIndex}">
       <select id="status${ticketIndex}">
-        ${statuses.map(s => `<option${s === status ? ' selected' : ''}>${s}</option>`).join("")}
+        ${statuses.map(s => `<option${s === normalizedStatus ? ' selected' : ''}>${s}</option>`).join("")}
       </select>
       <input value="${label}" placeholder="Label" id="label${ticketIndex}">
       <input value="${comment}" placeholder="Comment" id="comment${ticketIndex}">
@@ -281,17 +280,36 @@
     ticketIndex++;
   }
 
-  alert("Pasted data loaded successfully!");
+  alert("Pasted data loaded and normalized successfully!");
 }
 
-window.onload = function () {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  document.getElementById('reportDate').value = `${yyyy}-${mm}-${dd}`;
-};
-    addTicket(); // Load initial row
+
+    window.onload = function () {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      document.getElementById('reportDate').value = `${yyyy}-${mm}-${dd}`;
+      addTicket();
+    };
   </script>
+  <script>
+let automationEditor;
+ClassicEditor
+  .create(document.getElementById('automationStatus'), {
+    toolbar: [
+      'bold', 'italic', 'underline', 'strikethrough',
+      'bulletedList', 'numberedList',
+      'blockQuote', 'link', 'undo', 'redo'
+    ]
+  })
+  .then(editor => {
+    automationEditor = editor;
+  })
+  .catch(error => {
+    console.error(error);
+  });
+</script>
+
 </body>
 </html>
