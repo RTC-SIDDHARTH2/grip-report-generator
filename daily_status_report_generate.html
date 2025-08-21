@@ -67,7 +67,7 @@
 
   <script>
     let ticketIndex = 0;
-    const statuses = ["Ready for RC", "In QA","QA Blocked", "Needs Refinement", "Reopened", "To do(Backlog)", "Added to Zephyr"];
+    const statuses = ["Ready for Release", "In QA","QA Blocked", "Needs Refinement", "Reopened", "To do(Backlog)", "Added to Zephyr"];
 
     function addTicket() {
       const container = document.getElementById("ticketContainer");
@@ -160,7 +160,7 @@
       html += `<h2>🧪 Manual Testing / Functional Testing</h2>`;
 
       const sections = [
-        { label: "✅ Ready for RC", status: "Ready for RC", class: "ready-for-rc" },
+        { label: "✅ Ready for Release", status: "Ready for Release", class: "ready-for-rc" },
         { label: "🛠 Needs Refinement", status: "Needs Refinement", class: "needs-refinement" },
         { label: "🧪 In QA", status: "In QA", class: "in-qa" },
 		{ label: "⛔ QA Blocked", status: "QA Blocked", class: "qa-blocked" }, 
@@ -266,11 +266,11 @@ ${document.getElementById("result").innerHTML}
     if (!row[headerMap.id] || !row[headerMap.title]) continue;
 
     let rawStatus = row[headerMap.status].toLowerCase().trim();
-    let normalizedStatus = "Ready for RC"; // default
+    let normalizedStatus = "Ready for Release"; // default
 	if (rawStatus === "qa blocked" || rawStatus.includes("blocked")) normalizedStatus = "QA Blocked"; 
     if (rawStatus.includes("refine")) normalizedStatus = "Needs Refinement";
     else if (rawStatus.includes("in qa")) normalizedStatus = "In QA";
-    else if (rawStatus.includes("rc")) normalizedStatus = "Ready for RC";
+    else if (rawStatus.includes("rc")) normalizedStatus = "Ready for Release";
     else if (rawStatus.includes("defect") || rawStatus.includes("to do") ) normalizedStatus = "To do(Backlog)";
     else if (rawStatus.includes("reopen")) normalizedStatus = "Reopened";
     else if (rawStatus.includes("add") || rawStatus.includes("zephyr")) normalizedStatus = "Added to Zephyr";
