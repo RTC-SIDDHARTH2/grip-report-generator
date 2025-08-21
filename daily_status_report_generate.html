@@ -21,6 +21,7 @@
     th { background-color: #f2f2f2; }
     .ready-for-rc { background-color: #d4edda; }
     .in-qa { background-color: #d1ecf1; }
+	.qa-blocked { background-color: #ffcccc; }
     .needs-refinement { background-color: #e2e3f3; }
     .reopened { background-color: #f9dcdc; }
     .logged-defect { background-color: #fbe8b7; }
@@ -52,6 +53,9 @@
   <br>
   <button onclick="parsePastedData()">📤 Paste & Load Data</button>
 
+<h2>Functional Status</h2>
+<textarea id="functionalStatus">Functional testing status will be updated here...</textarea>
+
   <h2>Automation Status</h2>
   <textarea id="automationStatus">Test cases have been updated...</textarea>
 	
@@ -63,7 +67,7 @@
 
   <script>
     let ticketIndex = 0;
-    const statuses = ["Ready for RC", "In QA", "Needs Refinement", "Reopened", "To do(Backlog)", "Added to Zephyr"];
+    const statuses = ["Ready for RC", "In QA","QA Blocked", "Needs Refinement", "Reopened", "To do(Backlog)", "Added to Zephyr"];
 
     function addTicket() {
       const container = document.getElementById("ticketContainer");
@@ -137,7 +141,7 @@
       }
       const [yyyy, mm, dd] = rawDate.split("-");
       const formattedDate = `${dd}/${mm}/${yyyy}`;
-      const automation = automationEditor ? automationEditor.getData() : document.getElementById("automationStatus").value;
+      const automation = automationEditor ? automationEditor.getData() : document.getElementById("automationStatus").value.trim();
 
 
       let tickets = [];
@@ -159,6 +163,7 @@
         { label: "✅ Ready for RC", status: "Ready for RC", class: "ready-for-rc" },
         { label: "🛠 Needs Refinement", status: "Needs Refinement", class: "needs-refinement" },
         { label: "🧪 In QA", status: "In QA", class: "in-qa" },
+		{ label: "⛔ QA Blocked", status: "QA Blocked", class: "qa-blocked" }, 
         { label: "🔁 Reopened", status: "Reopened", class: "reopened" },
         { label: "🐞 Logged Defects", status: "To do(Backlog)", class: "logged-defect" },
         { label: "🧾 Test Cases Added to Zephyr", status: "Added to Zephyr", class: "added-zephyr" }
@@ -172,8 +177,17 @@
         }
       }
 
-      html += `<h2>🤖 Automation Testing</h2>`;
-      html += `<h3>Automation Status</h3><p>${automation}</p>`;
+      const functional = functionalEditor ? functionalEditor.getData().trim() : document.getElementById("functionalStatus").value.trim();
+
+if (functional) {
+    html += `<h2>🧩 Functional Status</h2>`;
+    html += `<p>${functional}</p>`;
+}
+if (automation) {
+    html += `<h2>🤖 Automation Testing</h2>`;
+    html += `<h3>Automation Status</h3><p>${automation}</p>`;
+}
+
 
       document.getElementById("result").innerHTML = html;
       document.getElementById("downloadBtn").style.display = "inline-block";
@@ -200,6 +214,7 @@
   th { background-color: #f2f2f2; }
   .ready-for-rc { background-color: #d4edda; }
   .in-qa { background-color: #d1ecf1; }
+  .qa-blocked { background-color: #ffcccc; } 
   .needs-refinement { background-color: #e2e3f3; }
   .reopened { background-color: #f9dcdc; }
   .logged-defect { background-color: #fbe8b7; }
@@ -252,11 +267,11 @@ ${document.getElementById("result").innerHTML}
 
     let rawStatus = row[headerMap.status].toLowerCase().trim();
     let normalizedStatus = "Ready for RC"; // default
-
+	if (rawStatus === "qa blocked" || rawStatus.includes("blocked")) normalizedStatus = "QA Blocked"; 
     if (rawStatus.includes("refine")) normalizedStatus = "Needs Refinement";
-    else if (rawStatus.includes("qa")) normalizedStatus = "In QA";
+    else if (rawStatus.includes("in qa")) normalizedStatus = "In QA";
     else if (rawStatus.includes("rc")) normalizedStatus = "Ready for RC";
-    else if (rawStatus.includes("defect")) normalizedStatus = "To do(Backlog)";
+    else if (rawStatus.includes("defect") || rawStatus.includes("to do") ) normalizedStatus = "To do(Backlog)";
     else if (rawStatus.includes("reopen")) normalizedStatus = "Reopened";
     else if (rawStatus.includes("add") || rawStatus.includes("zephyr")) normalizedStatus = "Added to Zephyr";
 
@@ -294,6 +309,22 @@ ${document.getElementById("result").innerHTML}
     };
   </script>
   <script>
+  let functionalEditor;
+ClassicEditor
+  .create(document.getElementById('functionalStatus'), {
+    toolbar: [
+      'bold', 'italic', 'underline', 'strikethrough',
+      'bulletedList', 'numberedList',
+      'blockQuote', 'link', 'undo', 'redo'
+    ]
+  })
+  .then(editor => {
+    functionalEditor = editor;
+  })
+  .catch(error => {
+    console.error(error);
+  });
+
 let automationEditor;
 ClassicEditor
   .create(document.getElementById('automationStatus'), {
