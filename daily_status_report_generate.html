@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>GRIP Report Generator</title>
   <div style="margin:10px 0; padding:10px; border:1px solid #ccc; background:#f0f0f0; display:inline-block;">
-    <label><strong>Total Tickets :</strong></label>
+    <label><strong>Ready For QA Tickets :</strong></label>
     <input type="number" id="totalTickets" value="0" style="width:80px; padding:4px;">
   </div>
    <style>
@@ -194,8 +194,8 @@
       const totalTickets = document.getElementById("totalTickets").value || 0;
 
       let html = `<h1>GRIP Project Daily Status (${formattedDate})</h1>`;
-      html += `<p><strong style="font-size:16px;">📌 Total Tickets: <span style="color:#004080;">${totalTickets}</span></strong></p>`;
-      html += `<h2>🧪 Manual Testing / Functional Testing</h2>`;
+      html += `<p><strong style="font-size:16px;">📌 Ready For QA Tickets: <span style="color:#004080;">${totalTickets}</span></strong></p>`;
+      html += `<h2>🧪 Functional Testing</h2>`;
 
       const sections = [
         { label: "✅ Ready for Release", status: "Ready for Release", class: "ready-for-rc" },
