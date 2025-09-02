@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <title>GRIP Report Generator</title>
-  <style>
+  <div style="margin:10px 0; padding:10px; border:1px solid #ccc; background:#f0f0f0; display:inline-block;">
+    <label><strong>Total Tickets :</strong></label>
+    <input type="number" id="totalTickets" value="0" style="width:80px; padding:4px;">
+  </div>
+   <style>
     body { font-family: Arial; margin: 20px; background: #f8f9fa; }
     h1, h2, h3 { color: #2F4F4F; }
     .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
@@ -12,20 +16,21 @@
     button { padding: 8px 16px; background: #2F4F4F; color: white; border: none; margin-top: 10px; cursor: pointer; }
     button:hover { background: #1e2d2d; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
-    th, td { border: 1px solid #ccc; padding: 8px; word-wrap: break-word; text-align: left; }
-    th:nth-child(1), td:nth-child(1) { width: 10%; }
-    th:nth-child(2), td:nth-child(2) { width: 30%; }
-    th:nth-child(3), td:nth-child(3) { width: 15%; }
-    th:nth-child(4), td:nth-child(4) { width: 15%; }
-    th:nth-child(5), td:nth-child(5) { width: 30%; }
-    th { background-color: #f2f2f2; }
+    th, td { border: 1px solid #f2f2f2; padding: 8px; word-wrap: break-word; text-align: left; }
+    th { background-color: #d9d9d9; color: black; }
+    .sanity-row { background-color: #e6f2ff; }
+    .smoke-row { background-color: #fff3e6; }
+    .pass { color: green; font-weight: bold; }
+    .fail { color: red; font-weight: bold; }
     .ready-for-rc { background-color: #d4edda; }
     .in-qa { background-color: #d1ecf1; }
-	.qa-blocked { background-color: #ffcccc; }
+    .qa-blocked { background-color: #ffcccc; }
     .needs-refinement { background-color: #e2e3f3; }
     .reopened { background-color: #f9dcdc; }
     .logged-defect { background-color: #fbe8b7; }
     .added-zephyr { background-color: #e0f7da; }
+    .failure-box { margin: 10px 0; padding: 8px; border: 1px solid #ccc; background: #fafafa; }
+    .failure-box textarea { height: 50px; }
   </style>
   <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -53,12 +58,31 @@
   <br>
   <button onclick="parsePastedData()">📤 Paste & Load Data</button>
 
-<h2>Functional Status</h2>
-<textarea id="functionalStatus">Functional testing status will be updated here...</textarea>
+  <h2>Functional Status</h2>
+  <textarea id="functionalStatus">Functional testing status will be updated here...</textarea>
 
   <h2>Automation Status</h2>
   <textarea id="automationStatus">Test cases have been updated...</textarea>
-	
+
+  <div style="margin-top:10px; padding:10px; border:1px solid #ccc; background:#fafafa;">
+    <h3>Execution Summary</h3>
+    <label>Sanity - Total: <input type="number" id="sanityTotal" value="0"></label>
+    <label> Pass: <input type="number" id="sanityPass" value="0"></label>
+    <label> Fail: <input type="number" id="sanityFail" value="0"></label>
+    <div class="failure-box">
+      <label>Sanity Failure Reason (if any):</label>
+      <textarea id="sanityReason"></textarea>
+    </div>
+    <br>
+    <label>Smoke - Total: <input type="number" id="smokeTotal" value="0"></label>
+    <label> Pass: <input type="number" id="smokePass" value="0"></label>
+    <label> Fail: <input type="number" id="smokeFail" value="0"></label>
+    <div class="failure-box">
+      <label>Smoke Failure Reason (if any):</label>
+      <textarea id="smokeReason"></textarea>
+    </div>
+  </div>
+
   <br><button onclick="generateReport()">Generate Report</button>
 
   <div id="result" style="margin-top: 30px;"></div>
@@ -134,6 +158,16 @@
     }
 
     function generateReport() {
+      const sanityTotal = document.getElementById("sanityTotal").value || 0;
+      const sanityPass = document.getElementById("sanityPass").value || 0;
+      const sanityFail = document.getElementById("sanityFail").value || 0;
+      const sanityReason = document.getElementById("sanityReason").value || "";
+
+      const smokeTotal = document.getElementById("smokeTotal").value || 0;
+      const smokePass = document.getElementById("smokePass").value || 0;
+      const smokeFail = document.getElementById("smokeFail").value || 0;
+      const smokeReason = document.getElementById("smokeReason").value || "";
+
       const rawDate = document.getElementById("reportDate").value;
       if (!rawDate) {
         alert("Please select a date.");
@@ -141,8 +175,9 @@
       }
       const [yyyy, mm, dd] = rawDate.split("-");
       const formattedDate = `${dd}/${mm}/${yyyy}`;
-      const automation = automationEditor ? automationEditor.getData() : document.getElementById("automationStatus").value.trim();
 
+      const automation = automationEditor ? automationEditor.getData().trim() : document.getElementById("automationStatus").value.trim();
+      const functional = functionalEditor ? functionalEditor.getData().trim() : document.getElementById("functionalStatus").value.trim();
 
       let tickets = [];
       for (let i = 0; i < ticketIndex; i++) {
@@ -156,14 +191,17 @@
         }
       }
 
+      const totalTickets = document.getElementById("totalTickets").value || 0;
+
       let html = `<h1>GRIP Project Daily Status (${formattedDate})</h1>`;
+      html += `<p><strong style="font-size:16px;">📌 Total Tickets: <span style="color:#004080;">${totalTickets}</span></strong></p>`;
       html += `<h2>🧪 Manual Testing / Functional Testing</h2>`;
 
       const sections = [
         { label: "✅ Ready for Release", status: "Ready for Release", class: "ready-for-rc" },
         { label: "🛠 Needs Refinement", status: "Needs Refinement", class: "needs-refinement" },
         { label: "🧪 In QA", status: "In QA", class: "in-qa" },
-		{ label: "⛔ QA Blocked", status: "QA Blocked", class: "qa-blocked" }, 
+        { label: "⛔ QA Blocked", status: "QA Blocked", class: "qa-blocked" }, 
         { label: "🔁 Reopened", status: "Reopened", class: "reopened" },
         { label: "🐞 Logged Defects", status: "To do(Backlog)", class: "logged-defect" },
         { label: "🧾 Test Cases Added to Zephyr", status: "Added to Zephyr", class: "added-zephyr" }
@@ -177,170 +215,147 @@
         }
       }
 
-      const functional = functionalEditor ? functionalEditor.getData().trim() : document.getElementById("functionalStatus").value.trim();
+      if (functional) {
+        html += `<h2>🧩 Functional Status</h2><p>${functional}</p>`;
+      }
 
-if (functional) {
-    html += `<h2>🧩 Functional Status</h2>`;
-    html += `<p>${functional}</p>`;
-}
-if (automation) {
-    html += `<h2>🤖 Automation Testing</h2>`;
-    html += `<h3>Automation Status</h3><p>${automation}</p>`;
-}
-
+      if (automation) {
+        html += `<h2>🤖 Automation Testing</h2>`;
+        html += `<h3>Automation Status</h3><p>${automation}</p>`;
+        html += `<h3>Execution Summary</h3>
+          <table>
+            <tr><th>Suite</th><th>Total</th><th>Pass</th><th>Fail</th></tr>
+            <tr class="sanity-row">
+              <td><strong>Sanity</strong></td>
+              <td><strong>${sanityTotal}</strong></td>
+              <td class="pass">${sanityPass}</td>
+              <td class="fail">${sanityFail}</td>
+            </tr>
+            <tr class="smoke-row">
+              <td><strong>Smoke</strong></td>
+              <td><strong>${smokeTotal}</strong></td>
+              <td class="pass">${smokePass}</td>
+              <td class="fail">${smokeFail}</td>
+            </tr>
+          </table>`;
+        if (sanityReason) {
+          html += `<p><strong>Sanity Failure Reason:</strong> ${sanityReason}</p>`;
+        }
+        if (smokeReason) {
+          html += `<p><strong>Smoke Failure Reason:</strong> ${smokeReason}</p>`;
+        }
+      }
 
       document.getElementById("result").innerHTML = html;
       document.getElementById("downloadBtn").style.display = "inline-block";
     }
 
-    function downloadReport() {
-      const rawDate = document.getElementById("reportDate").value;
-      const [yyyy, mm, dd] = rawDate.split("-");
-      const filename = `GRIP_Project_Daily_Status_${dd}_${mm}_${yyyy}.html`;
+function downloadReport() {
+  const rawDate = document.getElementById("reportDate").value;
+  const [yyyy, mm, dd] = rawDate.split("-");
+  const filename = `GRIP_Project_Daily_Status_${dd}_${mm}_${yyyy}.html`;
 
-      const htmlContent = `
+  // Collect ALL <style> tags
+  const styles = Array.from(document.querySelectorAll("style"))
+    .map(s => s.outerHTML)
+    .join("\n");
+
+  const content = document.getElementById("result").innerHTML;
+
+  const htmlContent = `
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>GRIP Project Daily Status</title>
-<style>
-  body { font-family: Arial; margin: 20px; background: #f8f9fa; }
-  h1, h2, h3 { color: #2F4F4F; }
-  table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
-  th, td { border: 1px solid #ccc; padding: 8px; word-wrap: break-word; text-align: left; }
-  th:nth-child(1), td:nth-child(1) { width: 10%; }
-  th:nth-child(2), td:nth-child(2) { width: 30%; }
-  th:nth-child(3), td:nth-child(3) { width: 15%; }
-  th:nth-child(4), td:nth-child(4) { width: 15%; }
-  th:nth-child(5), td:nth-child(5) { width: 30%; }
-  th { background-color: #f2f2f2; }
-  .ready-for-rc { background-color: #d4edda; }
-  .in-qa { background-color: #d1ecf1; }
-  .qa-blocked { background-color: #ffcccc; } 
-  .needs-refinement { background-color: #e2e3f3; }
-  .reopened { background-color: #f9dcdc; }
-  .logged-defect { background-color: #fbe8b7; }
-  .added-zephyr { background-color: #fff3cd; }
-</style></head><body>
-${document.getElementById("result").innerHTML}
-</body></html>`;
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GRIP Project Daily Status</title>
+${styles}
+</head>
+<body>
+${content}
+</body>
+</html>`;
 
-      const blob = new Blob([htmlContent], { type: "text/html" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-    }
-
-    function parsePastedData() {
-  const raw = document.getElementById("pastedData").value.trim();
-  if (!raw) {
-    alert("Please paste some data first.");
-    return;
-  }
-
-  const lines = raw.split("\n").map(line => line.split("\t").map(cell => cell.trim()));
-  if (lines.length < 2) {
-    alert("Not enough data to parse.");
-    return;
-  }
-
-  const headers = lines[0].map(h => h.toLowerCase());
-  const headerMap = {
-    id: headers.findIndex(h => h.includes("ticket id")),
-    title: headers.findIndex(h => h.includes("title")),
-    status: headers.findIndex(h => h.includes("status")),
-    label: headers.findIndex(h => h.includes("label")),
-    comment: headers.findIndex(h => h.includes("comment")) // optional
-  };
-
-  if (headerMap.id === -1 || headerMap.title === -1 || headerMap.status === -1) {
-    alert("Required columns (Ticket ID, Title, Status) not found.");
-    return;
-  }
-
-  document.getElementById("ticketContainer").innerHTML = "";
-  ticketIndex = 0;
-
-  for (let i = 1; i < lines.length; i++) {
-    const row = lines[i];
-    if (!row[headerMap.id] || !row[headerMap.title]) continue;
-
-    let rawStatus = row[headerMap.status].toLowerCase().trim();
-    let normalizedStatus = "Ready for Release"; // default
-	if (rawStatus === "qa blocked" || rawStatus.includes("blocked")) normalizedStatus = "QA Blocked"; 
-    if (rawStatus.includes("refine")) normalizedStatus = "Needs Refinement";
-    else if (rawStatus.includes("in qa")) normalizedStatus = "In QA";
-    else if (rawStatus.includes("rc")) normalizedStatus = "Ready for Release";
-    else if (rawStatus.includes("defect") || rawStatus.includes("to do") ) normalizedStatus = "To do(Backlog)";
-    else if (rawStatus.includes("reopen")) normalizedStatus = "Reopened";
-    else if (rawStatus.includes("add") || rawStatus.includes("zephyr")) normalizedStatus = "Added to Zephyr";
-
-    const id = row[headerMap.id] || "";
-    const title = row[headerMap.title] || "";
-    const label = headerMap.label !== -1 ? (row[headerMap.label] || "") : "";
-    const comment = headerMap.comment !== -1 ? (row[headerMap.comment] || "") : "";
-
-    const div = document.createElement("div");
-    div.className = "form-row";
-    div.innerHTML = `
-      <input value="${id}" placeholder="Ticket ID" id="ticketId${ticketIndex}">
-      <input value="${title}" placeholder="Title" id="title${ticketIndex}">
-      <select id="status${ticketIndex}">
-        ${statuses.map(s => `<option${s === normalizedStatus ? ' selected' : ''}>${s}</option>`).join("")}
-      </select>
-      <input value="${label}" placeholder="Label" id="label${ticketIndex}">
-      <input value="${comment}" placeholder="Comment" id="comment${ticketIndex}">
-    `;
-    document.getElementById("ticketContainer").appendChild(div);
-    ticketIndex++;
-  }
-
-  alert("Pasted data loaded and normalized successfully!");
+  const blob = new Blob([htmlContent], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
 }
 
 
-    window.onload = function () {
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dd = String(today.getDate()).padStart(2, '0');
-      document.getElementById('reportDate').value = `${yyyy}-${mm}-${dd}`;
-      addTicket();
+    function parsePastedData() {
+      const raw = document.getElementById("pastedData").value.trim();
+      if (!raw) {
+        alert("Please paste some data first.");
+        return;
+      }
+
+      const lines = raw.split("\n").map(line => line.split("\t").map(cell => cell.trim()));
+      if (lines.length < 2) {
+        alert("Not enough data to parse.");
+        return;
+      }
+
+      const headers = lines[0].map(h => h.toLowerCase());
+      const headerMap = {
+        id: headers.findIndex(h => h.includes("ticket id")),
+        title: headers.findIndex(h => h.includes("title")),
+        status: headers.findIndex(h => h.includes("status")),
+        label: headers.findIndex(h => h.includes("label")),
+        comment: headers.findIndex(h => h.includes("comment"))
+      };
+
+      if (headerMap.id === -1 || headerMap.title === -1 || headerMap.status === -1) {
+        alert("Required columns (Ticket ID, Title, Status) not found.");
+        return;
+      }
+
+      document.getElementById("ticketContainer").innerHTML = "";
+      ticketIndex = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i];
+        if (!row[headerMap.id] || !row[headerMap.title]) continue;
+
+        let rawStatus = row[headerMap.status].toLowerCase().trim();
+        let normalizedStatus = "Ready for Release";
+        if (rawStatus === "qa blocked" || rawStatus.includes("blocked")) normalizedStatus = "QA Blocked"; 
+        else if (rawStatus.includes("refine")) normalizedStatus = "Needs Refinement";
+        else if (rawStatus.includes("in qa")) normalizedStatus = "In QA";
+        else if (rawStatus.includes("rc")) normalizedStatus = "Ready for Release";
+        else if (rawStatus.includes("defect") || rawStatus.includes("to do")) normalizedStatus = "To do(Backlog)";
+        else if (rawStatus.includes("reopen")) normalizedStatus = "Reopened";
+        else if (rawStatus.includes("add") || rawStatus.includes("zephyr")) normalizedStatus = "Added to Zephyr";
+
+        const id = row[headerMap.id] || "";
+        const title = row[headerMap.title] || "";
+        const label = headerMap.label !== -1 ? (row[headerMap.label] || "") : "";
+        const comment = headerMap.comment !== -1 ? (row[headerMap.comment] || "") : "";
+
+        const div = document.createElement("div");
+        div.className = "form-row";
+        div.innerHTML = `
+          <input value="${id}" placeholder="Ticket ID" id="ticketId${ticketIndex}">
+          <input value="${title}" placeholder="Title" id="title${ticketIndex}">
+          <select id="status${ticketIndex}">
+            ${statuses.map(s => `<option${s === normalizedStatus ? ' selected' : ''}>${s}</option>`).join("")}
+          </select>
+          <input value="${label}" placeholder="Label" id="label${ticketIndex}">
+          <input value="${comment}" placeholder="Comment" id="comment${ticketIndex}">
+        `;
+        document.getElementById("ticketContainer").appendChild(div);
+        ticketIndex++;
+      }
+
+      alert("Pasted data loaded and normalized successfully!");
+    }
+
+    let functionalEditor, automationEditor;
+    window.onload = () => {
+      ClassicEditor.create(document.querySelector("#functionalStatus")).then(editor => { functionalEditor = editor; });
+      ClassicEditor.create(document.querySelector("#automationStatus")).then(editor => { automationEditor = editor; });
     };
   </script>
-  <script>
-  let functionalEditor;
-ClassicEditor
-  .create(document.getElementById('functionalStatus'), {
-    toolbar: [
-      'bold', 'italic', 'underline', 'strikethrough',
-      'bulletedList', 'numberedList',
-      'blockQuote', 'link', 'undo', 'redo'
-    ]
-  })
-  .then(editor => {
-    functionalEditor = editor;
-  })
-  .catch(error => {
-    console.error(error);
-  });
-
-let automationEditor;
-ClassicEditor
-  .create(document.getElementById('automationStatus'), {
-    toolbar: [
-      'bold', 'italic', 'underline', 'strikethrough',
-      'bulletedList', 'numberedList',
-      'blockQuote', 'link', 'undo', 'redo'
-    ]
-  })
-  .then(editor => {
-    automationEditor = editor;
-  })
-  .catch(error => {
-    console.error(error);
-  });
-</script>
-
 </body>
 </html>
