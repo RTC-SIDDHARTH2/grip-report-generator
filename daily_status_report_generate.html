@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>GRIP Report Generator</title>
   <div style="margin:10px 0; padding:10px; border:1px solid #ccc; background:#f0f0f0; display:inline-block;">
-    <label><strong>Ready For QA Tickets :</strong></label>
+    <label><strong>RTC Ticktes:</strong></label>
     <input type="number" id="totalTickets" value="0" style="width:80px; padding:4px;">
   </div>
    <style>
@@ -62,7 +62,14 @@
   <textarea id="functionalStatus">Functional testing status will be updated here...</textarea>
 
   <h2>Automation Status</h2>
-  <textarea id="automationStatus">Test cases have been updated...</textarea>
+  <textarea id="automationStatus">
+**Total test case automated:**
+Automated [no of test cases] test cases today for _____________ [functionality]
+
+**Test cases:**
+
+**Update:** All test cases added in regression suite.
+</textarea>
 
   <div style="margin-top:10px; padding:10px; border:1px solid #ccc; background:#fafafa;">
     <h3>Execution Summary</h3>
