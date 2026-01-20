@@ -170,11 +170,13 @@ Automated [no of test cases] test cases today for _____________ [functionality]
       const sanityTotal = document.getElementById("sanityTotal").value || 0;
       const sanityPass = document.getElementById("sanityPass").value || 0;
       const sanityFail = document.getElementById("sanityFail").value || 0;
+      const sanityRemark = document.getElementById("sanityRemark").value || "";
       const sanityReason = document.getElementById("sanityReason").value || "";
 
       const smokeTotal = document.getElementById("smokeTotal").value || 0;
       const smokePass = document.getElementById("smokePass").value || 0;
       const smokeFail = document.getElementById("smokeFail").value || 0;
+      const smokeRemark = document.getElementById("smokeRemark").value || "";
       const smokeReason = document.getElementById("smokeReason").value || "";
 
       const rawDate = document.getElementById("reportDate").value;
@@ -233,18 +235,20 @@ Automated [no of test cases] test cases today for _____________ [functionality]
         html += `<h3>Automation Status</h3><p>${automation}</p>`;
         html += `<h3>Execution Summary</h3>
           <table>
-            <tr><th>Suite</th><th>Total</th><th>Pass</th><th>Fail</th></tr>
+            <tr><th>Suite</th><th>Total</th><th>Pass</th><th>Fail</th><Remarks></tr>
             <tr class="sanity-row">
               <td><strong>Sanity</strong></td>
               <td><strong>${sanityTotal}</strong></td>
               <td class="pass">${sanityPass}</td>
               <td class="fail">${sanityFail}</td>
+               <td>${sanityRemark}</td>
             </tr>
             <tr class="smoke-row">
               <td><strong>Smoke</strong></td>
               <td><strong>${smokeTotal}</strong></td>
               <td class="pass">${smokePass}</td>
               <td class="fail">${smokeFail}</td>
+              <td>${smokeRemark}</td>
             </tr>
           </table>`;
         if (sanityReason) {
@@ -368,4 +372,5 @@ ${content}
   </script>
 </body>
 </html>
+
 
