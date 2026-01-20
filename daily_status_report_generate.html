@@ -235,13 +235,13 @@ Automated [no of test cases] test cases today for _____________ [functionality]
         html += `<h3>Automation Status</h3><p>${automation}</p>`;
         html += `<h3>Execution Summary</h3>
           <table>
-            <tr><th>Suite</th><th>Total</th><th>Pass</th><th>Fail</th><Remarks></tr>
+            <tr><th>Suite</th><th>Total</th><th>Pass</th><th>Fail</th><th>Remarks</th></tr>
             <tr class="sanity-row">
               <td><strong>Sanity</strong></td>
               <td><strong>${sanityTotal}</strong></td>
               <td class="pass">${sanityPass}</td>
               <td class="fail">${sanityFail}</td>
-               <td>${sanityRemark}</td>
+              <td>${sanityRemark}</td>
             </tr>
             <tr class="smoke-row">
               <td><strong>Smoke</strong></td>
@@ -372,5 +372,3 @@ ${content}
   </script>
 </body>
 </html>
-
-
