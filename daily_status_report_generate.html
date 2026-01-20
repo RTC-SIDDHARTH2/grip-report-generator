@@ -58,7 +58,7 @@
   <br>
   <button onclick="parsePastedData()">📤 Paste & Load Data</button>
 
-  <h2>Functional Status</h2>
+  <h2>Functional Key Highlights</h2>
   <textarea id="functionalStatus">Functional testing status will be updated here...</textarea>
 
   <h2>Automation Status</h2>
@@ -76,6 +76,7 @@ Automated [no of test cases] test cases today for _____________ [functionality]
     <label>Sanity - Total: <input type="number" id="sanityTotal" value="0"></label>
     <label> Pass: <input type="number" id="sanityPass" value="0"></label>
     <label> Fail: <input type="number" id="sanityFail" value="0"></label>
+    <label> Remarks <input id="sanityRemark"></label>
     <div class="failure-box">
       <label>Sanity Failure Reason (if any):</label>
       <textarea id="sanityReason"></textarea>
@@ -84,6 +85,7 @@ Automated [no of test cases] test cases today for _____________ [functionality]
     <label>Smoke - Total: <input type="number" id="smokeTotal" value="0"></label>
     <label> Pass: <input type="number" id="smokePass" value="0"></label>
     <label> Fail: <input type="number" id="smokeFail" value="0"></label>
+    <label> Remarks <input id="smokeRemark"></label>
     <div class="failure-box">
       <label>Smoke Failure Reason (if any):</label>
       <textarea id="smokeReason"></textarea>
@@ -366,3 +368,4 @@ ${content}
   </script>
 </body>
 </html>
+
